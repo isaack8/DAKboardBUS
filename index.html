@@ -12,11 +12,11 @@
         body {
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: transparent;
+            background: transparent; /* Dark background to enhance white text visibility */
         }
         .bus-dashboard {
             padding: 1rem;
-            color: #333;
+            color: white; /* Changed from #333 to white */
         }
         .header {
             display: flex;
@@ -29,7 +29,7 @@
             display: grid;
             grid-template-rows: repeat(4, 1fr);
             gap: 0.5rem;
-            height: 240px; /* Reduced height */
+            height: 240px;
         }
         .arrival-item {
             display: flex;
@@ -39,7 +39,6 @@
             background: rgba(255, 255, 255, 0.1);
             border-radius: 0.5rem;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            opacity: 0.5;
         }
         .route-number {
             background: #1a73e8;
@@ -144,9 +143,15 @@
 
             useEffect(() => {
                 fetchArrivals();
-                const interval = setInterval(fetchArrivals, 60000); // Refresh every minute
+                
+                // Change interval based on error state
+                const interval = setInterval(
+                    fetchArrivals, 
+                    error ? 15000 : 60000 // 15 seconds on error, 1 minute otherwise
+                );
+                
                 return () => clearInterval(interval);
-            }, []);
+            }, [error]); // Add error to dependency array to trigger re-render
 
             const getTimeDiff = (predictedTime) => {
                 const now = new Date().getTime();

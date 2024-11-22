@@ -25,15 +25,21 @@
             gap: 0.5rem;
             margin-bottom: 1rem;
         }
+        .arrivals {
+            display: grid;
+            grid-template-rows: repeat(5, 1fr);
+            gap: 0.5rem;
+            height: 300px; /* Fixed height */
+        }
         .arrival-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 0.75rem;
-            margin-bottom: 0.5rem;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 0.5rem;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            opacity: 0.5; /* Placeholder rows are dimmed */
         }
         .route-number {
             background: #1a73e8;
@@ -68,6 +74,9 @@
             color: #dc3545;
             padding: 1rem;
             text-align: center;
+        }
+        .empty-arrival {
+            visibility: hidden;
         }
     </style>
 </head>
@@ -115,7 +124,7 @@
                             const timeB = b.predictedArrivalTime || b.scheduledArrivalTime;
                             return timeA - timeB;
                         })
-                        .slice(0, 5) // Show next 5 arrivals
+                        .slice(0, 4) // Show next 4 arrivals
                         .map(arr => ({
                             route: arr.routeShortName,
                             destination: arr.tripHeadsign,
@@ -145,21 +154,12 @@
                 return minuteDiff > 0 ? minuteDiff : 0;
             };
 
-            if (!arrivals.length && !error) {
-                return <div className="bus-dashboard">Loading...</div>;
-            }
-
-            if (error) {
-                return <div className="error">{error}</div>;
-            }
-
-            return (
-                <div className="bus-dashboard">
-                    <div className="header">
-                        <h2>Leary Way NW & NW 43rd St</h2>
-                    </div>
-                    <div className="arrivals">
-                        {arrivals.map((arrival, index) => (
+            // Create placeholder rows to maintain consistent layout
+            const renderArrivals = () => {
+                const rows = new Array(4).fill(null).map((_, index) => {
+                    const arrival = arrivals[index];
+                    if (arrival) {
+                        return (
                             <div key={index} className="arrival-item">
                                 <div className="route-number">{arrival.route}</div>
                                 <div className="destination">
@@ -171,7 +171,35 @@
                                     <div className="scheduled-time">{arrival.predictedTimeFormatted}</div>
                                 </div>
                             </div>
-                        ))}
+                        );
+                    }
+                    // Placeholder row
+                    return (
+                        <div key={`empty-${index}`} className="arrival-item empty-arrival">
+                            <div className="route-number">-</div>
+                            <div className="destination">
+                                <div>No upcoming buses</div>
+                            </div>
+                            <div className="arrival-time">
+                                <div>-</div>
+                            </div>
+                        </div>
+                    );
+                });
+                return rows;
+            };
+
+            if (error) {
+                return <div className="error">{error}</div>;
+            }
+
+            return (
+                <div className="bus-dashboard">
+                    <div className="header">
+                        <h2>Leary Way NW & NW 43rd St</h2>
+                    </div>
+                    <div className="arrivals">
+                        {renderArrivals()}
                     </div>
                     {lastUpdated && (
                         <div className="update-time">

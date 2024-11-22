@@ -120,7 +120,8 @@
                             route: arr.routeShortName,
                             destination: arr.tripHeadsign,
                             scheduledTime: new Date(arr.scheduledArrivalTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-                            predictedTime: new Date(arr.predictedArrivalTime || arr.scheduledArrivalTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                            predictedTime: arr.predictedArrivalTime || arr.scheduledArrivalTime,
+                            predictedTimeFormatted: new Date(arr.predictedArrivalTime || arr.scheduledArrivalTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
                         }));
 
                     setArrivals(arrivalsData);
@@ -140,8 +141,9 @@
 
             const getTimeDiff = (predictedTime) => {
                 const now = dayjs();
-                const predicted = dayjs(`${now.format('YYYY-MM-DD')} ${predictedTime}`);
-                return predicted.diff(now, 'minute');
+                const predicted = dayjs(predictedTime); // Use raw timestamp
+                const diffMinutes = predicted.diff(now, 'minute');
+                return diffMinutes > 0 ? diffMinutes : 0; // Ensure non-negative
             };
 
             if (!arrivals.length && !error) {
@@ -167,7 +169,7 @@
                                 </div>
                                 <div className="arrival-time">
                                     <div>{getTimeDiff(arrival.predictedTime)} min</div>
-                                    <div className="scheduled-time">{arrival.predictedTime}</div>
+                                    <div className="scheduled-time">{arrival.predictedTimeFormatted}</div>
                                 </div>
                             </div>
                         ))}

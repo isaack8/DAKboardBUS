@@ -140,10 +140,9 @@
             }, []);
 
             const getTimeDiff = (predictedTime) => {
-                const now = dayjs();
-                const predicted = dayjs(predictedTime); // Use raw timestamp
-                const diffMinutes = predicted.diff(now, 'minute');
-                return diffMinutes > 0 ? diffMinutes : 0; // Ensure non-negative
+                const now = new Date().getTime();
+                const minuteDiff = Math.floor((predictedTime - now) / 60000);
+                return minuteDiff > 0 ? minuteDiff : 0;
             };
 
             if (!arrivals.length && !error) {

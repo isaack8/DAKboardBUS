@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Metro Bus Times</title>
-    <!-- Updated to more specific versions and added crossorigin -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -33,6 +32,7 @@
             margin-bottom: 0.5rem;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         .route-number {
             background: #1a73e8;
@@ -70,25 +70,55 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // Ensure we're using the correct React imports
         const { useState, useEffect } = React;
 
         const BusSchedule = () => {
             const [arrivals, setArrivals] = useState([]);
             const [lastUpdated, setLastUpdated] = useState(null);
             const [error, setError] = useState(null);
-            const stopId = '1_28260'; // Replace with your stop ID
+            const stopId = '1_28260';
+            const API_KEY = 'TEST'; // Using public test key - replace with your key for production
 
             const fetchArrivals = async () => {
                 try {
-                    // Using mock data for now
-                    const mockData = [
-                        { route: "40", destination: "Northgate", scheduledTime: "10:15 AM", predictedTime: "10:18 AM" },
-                        { route: "62", destination: "Sand Point", scheduledTime: "10:25 AM", predictedTime: "10:25 AM" },
-                        { route: "40", destination: "Northgate", scheduledTime: "10:45 AM", predictedTime: "10:48 AM" }
-                    ];
+                    const response = await fetch(
+                        `https://api.pugetsound.onebusaway.org/api/where/arrivals-and-departures-for-stop/${stopId}.json?key=${API_KEY}`,
+                        {
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        }
+                    );
                     
-                    setArrivals(mockData);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch data');
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.code !== 200) {
+                        throw new Error(data.text);
+                    }
+
+                    const arrivalsData = data.data.entry.arrivalsAndDepartures
+                        .filter(arr => {
+                            const arrivalTime = arr.predictedArrivalTime || arr.scheduledArrivalTime;
+                            return arrivalTime > Date.now(); // Only future arrivals
+                        })
+                        .sort((a, b) => {
+                            const timeA = a.predictedArrivalTime || a.scheduledArrivalTime;
+                            const timeB = b.predictedArrivalTime || b.scheduledArrivalTime;
+                            return timeA - timeB;
+                        })
+                        .slice(0, 5) // Show next 5 arrivals
+                        .map(arr => ({
+                            route: arr.routeShortName,
+                            destination: arr.tripHeadsign,
+                            scheduledTime: new Date(arr.scheduledArrivalTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+                            predictedTime: new Date(arr.predictedArrivalTime || arr.scheduledArrivalTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                        }));
+
+                    setArrivals(arrivalsData);
                     setLastUpdated(new Date());
                     setError(null);
                 } catch (err) {
@@ -109,7 +139,6 @@
                 return predicted.diff(now, 'minute');
             };
 
-            // Add a loading state
             if (!arrivals.length && !error) {
                 return <div className="bus-dashboard">Loading...</div>;
             }
@@ -147,7 +176,6 @@
             );
         };
 
-        // Update to use createRoot for React 18
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<BusSchedule />);
     </script>

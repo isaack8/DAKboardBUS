@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metro Bus Times</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: transparent;
+        }
+        .bus-dashboard {
+            padding: 1rem;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .arrival-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+        }
+        .route-number {
+            background: #1a73e8;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+            min-width: 2.5rem;
+            text-align: center;
+        }
+        .destination {
+            flex-grow: 1;
+            margin-left: 1rem;
+        }
+        .arrival-time {
+            text-align: right;
+        }
+        .scheduled-time {
+            font-size: 0.875rem;
+            opacity: 0.7;
+        }
+        .update-time {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            margin-top: 1rem;
+        }
+        .error {
+            color: #dc3545;
+            padding: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const BusSchedule = () => {
+            const [arrivals, setArrivals] = React.useState([]);
+            const [lastUpdated, setLastUpdated] = React.useState(null);
+            const [error, setError] = useState(null);
+            const stopId = '1_28260'; // Replace with your stop ID
+
+            const fetchArrivals = async () => {
+                try {
+                    // Replace this URL with the actual OneBusAway API endpoint
+                    const response = await fetch(`https://api.pugetsound.onebusaway.org/api/where/arrivals-and-departures-for-stop/${stopId}.json`);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch data');
+                    }
+                    const data = await response.json();
+                    
+                    // For now, using mock data
+                    const mockData = [
+                        { route: "40", destination: "Northgate", scheduledTime: "10:15 AM", predictedTime: "10:18 AM" },
+                        { route: "62", destination: "Sand Point", scheduledTime: "10:25 AM", predictedTime: "10:25 AM" },
+                        { route: "40", destination: "Northgate", scheduledTime: "10:45 AM", predictedTime: "10:48 AM" }
+                    ];
+                    
+                    setArrivals(mockData);
+                    setLastUpdated(new Date());
+                    setError(null);
+                } catch (err) {
+                    setError('Unable to fetch arrival times');
+                }
+            };
+
+            React.useEffect(() => {
+                fetchArrivals();
+                const interval = setInterval(fetchArrivals, 60000); // Refresh every minute
+                return () => clearInterval(interval);
+            }, []);
+
+            const getTimeDiff = (predictedTime) => {
+                const now = dayjs();
+                const predicted = dayjs(`${now.format('YYYY-MM-DD')} ${predictedTime}`);
+                return predicted.diff(now, 'minute');
+            };
+
+            if (error) {
+                return <div className="error">{error}</div>;
+            }
+
+            return (
+                <div className="bus-dashboard">
+                    <div className="header">
+                        <h2>Metro Stop #{stopId}</h2>
+                    </div>
+                    <div className="arrivals">
+                        {arrivals.map((arrival, index) => (
+                            <div key={index} className="arrival-item">
+                                <div className="route-number">{arrival.route}</div>
+                                <div className="destination">
+                                    <div>{arrival.destination}</div>
+                                    <div className="scheduled-time">Scheduled: {arrival.scheduledTime}</div>
+                                </div>
+                                <div className="arrival-time">
+                                    <div>{getTimeDiff(arrival.predictedTime)} min</div>
+                                    <div className="scheduled-time">{arrival.predictedTime}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    {lastUpdated && (
+                        <div className="update-time">
+                            Last updated: {lastUpdated.toLocaleTimeString()}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        ReactDOM.render(<BusSchedule />, document.getElementById('root'));
+    </script>
+</body>
+</html>
